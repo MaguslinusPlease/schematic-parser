@@ -1,4 +1,3 @@
-import { exit } from 'process';
 import { launch } from 'puppeteer';
 import { writeFileSync } from 'fs';
 

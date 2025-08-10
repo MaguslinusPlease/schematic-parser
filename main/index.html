@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Schematic Finder</title>
+    <link rel="stylesheet" href="./src/scss/main.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div class="head">
+        <h1 class="center">Schematics</h1>
+        <form action="" class="center">
+          <input
+            type="search"
+            name="search-field"
+            id="search-field"
+            class="search-field"
+          />
+        </form>
+
+        <div class="category-filters">
+          <div class="category-grid">
+            <button class="category-card clear-btn" data-category="">
+              All Categories
+            </button>
+            <button class="category-card" data-category="Arenas">Arenas</button>
+            <button class="category-card" data-category="Castles">
+              Castles
+            </button>
+            <button class="category-card" data-category="Dungeons">
+              Dungeons
+            </button>
+            <button class="category-card" data-category="Entertainement">
+              Entertainment
+            </button>
+            <button class="category-card" data-category="Games">Games</button>
+            <button class="category-card" data-category="Houses And Shops">
+              Houses and shops
+            </button>
+            <button class="category-card" data-category="Miscellaneous">
+              Miscellaneous
+            </button>
+            <button class="category-card" data-category="Redstone">
+              Redstone
+            </button>
+            <button class="category-card" data-category="Temples">
+              Temples
+            </button>
+            <button class="category-card" data-category="Towers">Towers</button>
+            <button class="category-card" data-category="Towns">Towns</button>
+            <button class="category-card" data-category="Traps">Traps</button>
+            <button class="category-card" data-category="Floating Islands">
+              Floating Islands
+            </button>
+            <button class="category-card" data-category="Gardens">
+              Gardens
+            </button>
+            <button class="category-card" data-category="Islands">
+              Islands
+            </button>
+            <button class="category-card" data-category="Pixel Art">
+              Pixel art
+            </button>
+            <button class="category-card" data-category="Boats">Boats</button>
+            <button class="category-card" data-category="Flying Machines">
+              Flying machines
+            </button>
+            <button class="category-card" data-category="Ground Vehicles">
+              Ground Vehicles
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="schematic-list"></div>
+    </div>
+    <script type="module" src="/src/js/schematicController.js"></script>
+    <script type="module" src="/src/js/scrollingHeader.js"></script>
+  </body>
+</html>

@@ -1,3 +1,5 @@
+import { serverBookmarkManager } from './server-bookmark.js';
+
 let allData = [];
 let allItems = [];
 let filteredItems = [];
@@ -33,6 +35,8 @@ async function loadData() {
         setupCategoryFilters();
         
         console.log(`Loaded ${allItems.length} total items`);
+
+        await serverBookmarkManager.init(() => filterItems());
         
     } catch (error) {
         console.error("Error loading data:", error);
@@ -95,6 +99,18 @@ function setupCategoryFilters() {
 }
 
 function filterItems() {
+    // Clear category filters when showing bookmarks only
+    if (serverBookmarkManager.showBookmarksOnly) {
+        selectedCategories = [];
+        document.querySelectorAll('.category-card').forEach(card => {
+            card.classList.remove('active');
+        });
+        const clearBtn = document.querySelector('.category-card.clear-btn');
+        if (clearBtn) {
+            clearBtn.classList.add('active');
+        }
+    }
+    
     filteredItems = allItems.filter(item => {
         const matchesSearch = currentSearchTerm === "" || 
             item.title.toLowerCase().includes(currentSearchTerm);
@@ -102,7 +118,10 @@ function filterItems() {
         const matchesCategory = selectedCategories.length === 0 || 
             selectedCategories.includes(item.category);
         
-        return matchesSearch && matchesCategory;
+        // Update this line:
+        const matchesBookmarkFilter = serverBookmarkManager.shouldShowItem(item);
+        
+        return matchesSearch && matchesCategory && matchesBookmarkFilter;
     });
     
     currentlyDisplayed = 0;
@@ -122,13 +141,17 @@ function loadMoreItems() {
     itemsToLoad.forEach((item) => {
         const itemDiv = document.createElement("div");
         itemDiv.className = "item";
+        itemDiv.setAttribute("data-item-id", serverBookmarkManager.createItemId(item));
         
+        // TOP SECTION (Image)
         const topDiv = document.createElement("div");
         topDiv.className = "top";
         
         const imgLink = document.createElement("a");
         imgLink.href = item.fullUrl;
         imgLink.target = "_blank";
+        imgLink.style.position = "relative";
+        imgLink.style.display = "block";
         
         const img = document.createElement("img");
         img.className = "schematic-preview";
@@ -142,13 +165,24 @@ function loadMoreItems() {
         imgLink.appendChild(img);
         topDiv.appendChild(imgLink);
         
+        // BOTTOM SECTION
         const bottomDiv = document.createElement("div");
         bottomDiv.className = "bottom";
+        
+        // META-DATA SECTION (Category + Star Button)
+        const metaDataDiv = document.createElement("div");
+        metaDataDiv.className = "meta-data";
         
         const category = document.createElement("span");
         category.className = "schematic-category-card";
         category.textContent = item.category || "Uncategorized";
         
+        const bookmarkBtn = serverBookmarkManager.createBookmarkButton(item);
+        
+        metaDataDiv.appendChild(category);
+        metaDataDiv.appendChild(bookmarkBtn);
+        
+        // TITLE SECTION
         const titleLink = document.createElement("a");
         titleLink.href = item.fullUrl;
         titleLink.target = "_blank";
@@ -161,9 +195,11 @@ function loadMoreItems() {
         
         titleLink.appendChild(title);
         
-        bottomDiv.appendChild(category);
+        // ASSEMBLE BOTTOM SECTION
+        bottomDiv.appendChild(metaDataDiv);
         bottomDiv.appendChild(titleLink);
         
+        // ASSEMBLE ITEM
         itemDiv.appendChild(topDiv);
         itemDiv.appendChild(bottomDiv);
         
@@ -197,9 +233,9 @@ function updateLoadingIndicator() {
     }
     
     if (currentlyDisplayed < filteredItems.length) {
-        let statusText = `Showing ${currentlyDisplayed} of ${filteredItems.length} items`;
+        let statusText = serverBookmarkManager.getStatusText(currentlyDisplayed, filteredItems.length);
         
-        if (selectedCategories.length > 0) {
+        if (!serverBookmarkManager.showBookmarksOnly && selectedCategories.length > 0) {
             statusText += ` in ${selectedCategories.length} selected categor${selectedCategories.length === 1 ? 'y' : 'ies'}`;
         }
         
@@ -211,11 +247,8 @@ function updateLoadingIndicator() {
         loadingDiv.textContent = statusText;
         loadingDiv.style.display = "block";
     } else {
-        if (filteredItems.length === 0) {
-            loadingDiv.textContent = "No items found matching your filters.";
-        } else {
-            loadingDiv.textContent = `All ${filteredItems.length} filtered items loaded.`;
-        }
+        loadingDiv.textContent = serverBookmarkManager.getCompletionMessage(filteredItems.length);
+        
         setTimeout(() => {
             if (filteredItems.length > 0) {
                 loadingDiv.style.display = "none";

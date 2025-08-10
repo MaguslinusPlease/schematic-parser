@@ -2,43 +2,66 @@
 @import "./utils";
 
 :root {
-    background-color: $backgroundColor;
-    color: $textColor;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    scroll-behavior: smooth;
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  background-color: $backgroundColor;
+  color: $textColor;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  scroll-behavior: smooth;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 h1 {
-    font-weight: 900;
-    text-transform: uppercase;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .search-field {
-    width: 20rem;
-    height: 2rem;
+  width: 20rem;
+  height: 2rem;
 }
 
 .head {
   margin-bottom: 2rem;
-  
+  position: sticky;
+  top: 0;
+  background-color: $backgroundColor;
+  z-index: 999;
+  padding-bottom: 0.25rem;
+  transition: transform 0.3s ease-in-out;
+  transform: translateY(0);
+    
+    &.header-hidden {
+        transform: translateY(-100%);
+    }
+
   .center {
     text-align: center;
     margin-bottom: 1.5rem;
   }
-  
+
+  .bookmark-controls-container {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  select,
+  button {
+    padding: 0.35rem 1rem;
+  }
+
   .category-filters {
     margin: 2rem auto;
     max-width: 90%;
-    
+
     .category-grid {
       display: flex;
       gap: 0.5rem;
       flex-wrap: wrap;
     }
-    
+
     .category-card {
       background: #f8f9fa;
       border: 2px solid #225560;
@@ -50,26 +73,26 @@ h1 {
       transition: all 0.3s ease;
       white-space: nowrap;
       min-width: 150px;
-      
+
       &:hover {
         background: #225560;
         color: white;
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(34, 85, 96, 0.3);
       }
-      
+
       &.active {
         background: #225560;
         color: white;
         box-shadow: 0 0 0 2px rgba(34, 85, 96, 0.3);
       }
-      
+
       &.clear-btn {
         background: #e74c3c;
         border-color: #e74c3c;
         color: white;
         font-weight: bold;
-        
+
         &:hover {
           background: #c0392b;
           border-color: #c0392b;
@@ -85,53 +108,69 @@ h1 {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
-  
+
   .item {
     border: 1px solid #225560;
     display: flex;
     flex-direction: column;
     transition: all 0.3s ease;
-    
+
     &:hover {
       transform: scale(1.025);
-      box-shadow: 
+      box-shadow:
         0 0 0 2px #225560,
         0 0 20px rgba(34, 85, 96, 0.6),
         0 0 40px rgba(34, 85, 96, 0.3);
-      
+
       // Shrink all sibling items that come after this one
       ~ .item {
         transform: scale(0.95);
         opacity: 0.7;
       }
     }
-    
+
     // Also shrink this item if any later sibling is hovered
     &:has(~ .item:hover) {
       transform: scale(0.95);
       opacity: 0.7;
     }
-    
+
     .schematic-preview {
       width: 100%;
       aspect-ratio: 16 / 9;
       object-fit: cover;
       image-rendering: crisp-edges;
     }
-    
+
     .bottom {
-      position: relative;
       height: 100%;
       padding: 0.5rem;
 
+      .meta-data {
+        display: flex;
+        justify-content: space-between;
+
+        .schematic-category-card {
+          border: 1px solid #225560;
+          border-radius: 10rem;
+          padding: 0.15rem 0.5rem;
+        }
+
+        .star-btn {
+          min-width: 2rem;
+          font-size: 1.5rem;
+          background-color: $backgroundColor;
+          color: $textColor;
+          border: none;
+
+          &:hover {
+            cursor: pointer;
+          }
+        }
+      }
+
       h2 {
         width: fit-content;
-      }
-      
-      .schematic-category-card {
-        border: 1px solid #225560;
-        border-radius: 10rem;
-        padding: 0.15rem 0.5rem;
       }
     }
   }

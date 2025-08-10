@@ -31,10 +31,30 @@ h1 {
 
 .head {
   margin-bottom: 2rem;
+  position: sticky;
+  top: 0;
+  background-color: #171219;
+  z-index: 999;
+  padding-bottom: 0.25rem;
+  transition: transform 0.3s ease-in-out;
+  transform: translateY(0);
+}
+.head.header-hidden {
+  transform: translateY(-100%);
 }
 .head .center {
   text-align: center;
   margin-bottom: 1.5rem;
+}
+.head .bookmark-controls-container {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+.head select,
+.head button {
+  padding: 0.35rem 1rem;
 }
 .head .category-filters {
   margin: 2rem auto;
@@ -112,16 +132,29 @@ h1 {
   image-rendering: crisp-edges;
 }
 #schematic-list .item .bottom {
-  position: relative;
   height: 100%;
   padding: 0.5rem;
+}
+#schematic-list .item .bottom .meta-data {
+  display: flex;
+  justify-content: space-between;
+}
+#schematic-list .item .bottom .meta-data .schematic-category-card {
+  border: 1px solid #225560;
+  border-radius: 10rem;
+  padding: 0.15rem 0.5rem;
+}
+#schematic-list .item .bottom .meta-data .star-btn {
+  min-width: 2rem;
+  font-size: 1.5rem;
+  background-color: #171219;
+  color: #F0803C;
+  border: none;
+}
+#schematic-list .item .bottom .meta-data .star-btn:hover {
+  cursor: pointer;
 }
 #schematic-list .item .bottom h2 {
   width: -moz-fit-content;
   width: fit-content;
-}
-#schematic-list .item .bottom .schematic-category-card {
-  border: 1px solid #225560;
-  border-radius: 10rem;
-  padding: 0.15rem 0.5rem;
 }/*# sourceMappingURL=main.css.map */
