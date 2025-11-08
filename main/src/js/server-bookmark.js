@@ -6,7 +6,7 @@ export class ServerBookmarkManager {
         this.showBookmarksOnly = false;
         this.currentUser = '';
         this.onFilterChange = null;
-        this.serverUrl = 'http://localhost:3001';
+        this.serverUrl = 'http://192.168.178.29:3001';
         this.lastSaved = null;
     }
 
@@ -321,7 +321,7 @@ export class ServerBookmarkManager {
 
     // Create item ID (same as before)
     createItemId(item) {
-        return `${item.pageNumber}-${item.title.replace(/[^a-zA-Z0-9]/g, '')}`;
+        return `${item.pageNumber}-${item.fullTitle.replace(/[^a-zA-Z0-9]/g, '')}`;
     }
 
     // Check if item is bookmarked

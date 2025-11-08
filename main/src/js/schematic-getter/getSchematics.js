@@ -1,261 +1,151 @@
-import { launch } from 'puppeteer';
-import { writeFileSync } from 'fs';
+import * as cheerio from "cheerio";
+import fs from "fs/promises";
 
-async function getAmountPages(browser) {
-    const page = await browser.newPage();
-    
-    await page.goto('https://www.minecraft-schematics.com/latest/', { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('.pagination');
-    
-    const secondLastPage = await page.evaluate(() => {
-        const secondLastLi = document.querySelector('.pagination ul li:nth-last-child(2)');
-        
-        if (secondLastLi) {
-            const link = secondLastLi.querySelector('a');
-            return {
-                text: link ? parseInt(link.textContent.trim()) : null,
-            };
-        }
-        return null;
-    });
-    
-    await page.close();
-    return secondLastPage ? secondLastPage.text : null;
+const BASE_URL = "https://www.minecraft-schematics.com";
+const OUTPUT_FILE = "./../../../minecraft-schematics.json";
+const MAX_PARALLEL = 21;
+const DEBUG = false;
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Extract schematic ID from URL
+function extractIdFromUrl(url) {
+  const match = url.match(/schematic\/(\d+)\//);
+  return match ? match[1] : null;
+}
+
+async function fetchHtml(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
+  return await res.text();
+}
+
+async function parseListingPage(pageNum) {
+  const url =
+    pageNum === 1 ? `${BASE_URL}/latest/` : `${BASE_URL}/latest/${pageNum}/`;
+
+  console.log(`\n🔍 Scraping list page ${pageNum}...`);
+  const html = await fetchHtml(url);
+  const $ = cheerio.load(html);
+
+  const items = [];
+  $(".row-fluid .span4").each((_, el) => {
+    const fullUrl = BASE_URL + $(el).find("h3 a").attr("href");
+    const imageSrc = $(el).find("img").attr("src");
+    const downloadLink = fullUrl + "download/";
+    const id = extractIdFromUrl(fullUrl);
+
+    if (id && fullUrl && imageSrc && downloadLink) {
+      items.push({ id, downloadLink, imageSrc, fullUrl });
+    }
+  });
+
+  console.log(`   → Found ${items.length} items on page ${pageNum}`);
+  return items;
+}
+
+async function getDetails(fullUrl) {
+  try {
+    const html = await fetchHtml(fullUrl);
+    const $ = cheerio.load(html);
+
+    const fullTitle = $("h1").text().trim() || "";
+    const category =
+      $(".span5 table tbody tr:first-child td:nth-child(2)").text().trim() ||
+      "";
+    const theme =
+      $(".span5 table tbody tr:nth-child(2) td:nth-child(2)").text().trim() ||
+      "";
+
+    return { fullTitle, category, theme };
+  } catch (err) {
+    console.error(`⚠️ Error getting details for ${fullUrl}: ${err.message}`);
+    return { fullTitle: "", category: "", theme: "" };
+  }
+}
+
+async function addDetailsToItems(items, pageNum) {
+  const results = [];
+  for (let i = 0; i < items.length; i += MAX_PARALLEL) {
+    const batch = items.slice(i, i + MAX_PARALLEL);
+    const batchResults = await Promise.all(
+      batch.map(async (item) => {
+        const details = await getDetails(item.fullUrl);
+        return { ...item, ...details };
+      })
+    );
+    results.push(...batchResults);
+    console.log(
+      `   ✔️ Processed ${Math.min(i + MAX_PARALLEL, items.length)} of ${
+        items.length
+      } items on page ${pageNum}`
+    );
+    await sleep(300);
+  }
+  return results;
+}
+
+async function loadExistingData() {
+  try {
+    const data = await fs.readFile(OUTPUT_FILE, "utf8");
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
 }
 
 async function scrapeAllPages() {
-    const browser = await launch({ headless: true });
-    const amountPages = await getAmountPages(browser);
-    console.log('Total pages:', amountPages);
-    const results = [];
-    const baseUrl = 'https://www.minecraft-schematics.com';
-    
-    for (let pageNum = 1; pageNum <= amountPages; pageNum++) {
-        // Remove the artificial limit - let it run to the actual end
-        console.log(`Processing page ${pageNum}/${amountPages}`);
-        
-        let page;
-        let pageItems = [];
-        
-        try {
-            page = await browser.newPage();
-            
-            // Disable images and unnecessary resources for faster loading
-            await page.setRequestInterception(true);
-            page.on('request', (req) => {
-                if(['image', 'stylesheet', 'font'].includes(req.resourceType())) {
-                    req.abort();
-                } else {
-                    req.continue();
-                }
-            });
-            
-            await page.goto(`${baseUrl}/latest/${pageNum}/`, { 
-                waitUntil: 'domcontentloaded',
-                timeout: 15000 
-            });
-            
-            // Check if page has content
-            try {
-                await page.waitForSelector('.span4', { timeout: 10000 });
-            } catch (error) {
-                console.log(`No content found on page ${pageNum}, likely reached the end`);
-                await page.close();
-                break; // Exit the loop if no content is found
-            }
-            
-            pageItems = await page.evaluate((baseUrl) => {
-                const span4Elements = document.querySelectorAll('.span4');
-                const items = [];
-                
-                span4Elements.forEach(span4Element => {
-                    const titleElement = span4Element.querySelector('h3 a');
-                    const imageElement = span4Element.querySelector('img');
-                    
-                    if (titleElement) {
-                        const title = titleElement.getAttribute('title') || titleElement.textContent.trim();
-                        const href = titleElement.getAttribute('href');
-                        const fullUrl = `${baseUrl}${href}`;
-                        
-                        // Extract schematic ID for download link
-                        const hrefParts = href.split('/');
-                        let downloadLink = '';
-                        if (hrefParts.length >= 3 && hrefParts[1] === 'schematic') {
-                            const schematicId = hrefParts[2];
-                            downloadLink = `https://www.minecraft-schematics.com/download/${schematicId}/`;
-                        }
-                        
-                        const imageSrc = imageElement ? imageElement.src : '';
-                        
-                        items.push({
-                            title,
-                            downloadLink,
-                            imageSrc,
-                            fullUrl,
-                            href // Keep href for category lookup
-                        });
-                    }
-                });
-                
-                return items;
-            }, baseUrl);
-            
-            await page.close();
-            
-        } catch (error) {
-            console.error(`Error processing page ${pageNum}:`, error.message);
-            if (page) await page.close();
-            continue; // Skip this page and continue with the next one
-        }
-        
-        // Skip category scraping if no items found
-        if (pageItems.length === 0) {
-            console.log(`No items found on page ${pageNum}`);
-            continue;
-        }
-        
-        // Get categories in parallel using 18 concurrent browsers
-        console.log(`  Fetching categories for ${pageItems.length} items in parallel...`);
-        const itemsWithCategory = await getCategoriesInParallel(browser, pageItems);
-        
-        results.push({
-            page: pageNum,
-            items: itemsWithCategory
-        });
-        
-        console.log(`Found ${itemsWithCategory.length} items on page ${pageNum}`);
-        
-        // SAVE AFTER EACH AND EVERY PAGE - NO DATA LOSS!
-        try {
-            writeFileSync('./../../../minecraft-schematics.json', JSON.stringify(results, null, 2));
-            console.log(`✓ JSON file updated after page ${pageNum} (${results.reduce((sum, page) => sum + page.items.length, 0)} total items scraped)`);
-        } catch (saveError) {
-            console.error('❌ Error saving after page:', saveError.message);
-        }
+  const existingData = await loadExistingData();
+  const existingIds = new Set(existingData.map((d) => d.id));
+  const allItems = [];
+  let pageNum = 1;
+  let stop = false;
+
+  while (!stop) {
+    const items = await parseListingPage(pageNum);
+    if (items.length === 0) break;
+
+    // Stop if we hit an existing ID
+    const newItems = [];
+    for (const item of items) {
+      if (existingIds.has(item.id)) {
+        console.log(
+          `🛑 Found existing ID (${item.id}) — stopping incremental scrape.`
+        );
+        stop = true;
+        break;
+      }
+      newItems.push(item);
     }
-    
-    await browser.close();
-    return results;
+
+    if (newItems.length === 0) break;
+
+    const withDetails = await addDetailsToItems(newItems, pageNum);
+    allItems.push(...withDetails);
+
+    console.log(
+      `✅ Finished page ${pageNum}. Collected ${withDetails.length} new items.`
+    );
+
+    if (DEBUG && pageNum >= 3) {
+      console.log("🐞 Debug mode active — stopping after 3 pages.");
+      break;
+    }
+
+    pageNum++;
+  }
+
+  if (allItems.length === 0) {
+    console.log("No new schematics found — exiting.");
+    return;
+  }
+
+  const newData = [...allItems, ...existingData];
+  await fs.writeFile(OUTPUT_FILE, JSON.stringify(newData, null, 2));
+  console.log(
+    `\n🎉 Done! Added ${allItems.length} new schematics. Total now: ${newData.length}`
+  );
 }
 
-async function getCategoriesInParallel(browser, items) {
-    const BATCH_SIZE = 18;
-    const results = [];
-    
-    // Process items in batches of 18
-    for (let i = 0; i < items.length; i += BATCH_SIZE) {
-        const batch = items.slice(i, i + BATCH_SIZE);
-        console.log(`    Processing batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(items.length/BATCH_SIZE)} (${batch.length} items)`);
-        
-        const batchPromises = batch.map(async (item, index) => {
-            let categoryPage;
-            try {
-                categoryPage = await browser.newPage();
-                
-                // Disable resources for faster loading
-                await categoryPage.setRequestInterception(true);
-                categoryPage.on('request', (req) => {
-                    if(['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) {
-                        req.abort();
-                    } else {
-                        req.continue();
-                    }
-                });
-                
-                await categoryPage.goto(item.fullUrl, { 
-                    waitUntil: 'domcontentloaded',
-                    timeout: 15000 
-                });
-                
-                const pageData = await categoryPage.evaluate(() => {
-                    // Get category from the table
-                    const category = document.querySelector('.span5 table tbody tr:first-child td:nth-child(2)')?.textContent?.trim() || '';
-                    
-                    // Get the full, untruncated title from the individual page
-                    const fullTitle = document.querySelector('h1')?.textContent?.trim() || 
-                                     document.querySelector('.page-header h1')?.textContent?.trim() ||
-                                     document.querySelector('.schematic-title')?.textContent?.trim() ||
-                                     document.querySelector('title')?.textContent?.split('|')[0]?.trim() || '';
-                    
-                    return {
-                        category,
-                        fullTitle
-                    };
-                });
-                
-                return {
-                    title: pageData.fullTitle || item.title, // Use full title if found, otherwise fallback to listing title
-                    downloadLink: item.downloadLink,
-                    imageSrc: item.imageSrc,
-                    fullUrl: item.fullUrl,
-                    category: pageData.category
-                };
-                
-            } catch (error) {
-                console.error(`      Error getting data for item ${i + index + 1}: ${error.message}`);
-                return {
-                    title: item.title, // Fallback to listing title if individual page fails
-                    downloadLink: item.downloadLink,
-                    imageSrc: item.imageSrc,
-                    fullUrl: item.fullUrl,
-                    category: ''
-                };
-            } finally {
-                if (categoryPage) {
-                    try {
-                        await categoryPage.close();
-                    } catch (closeError) {
-                        console.error(`      Error closing page: ${closeError.message}`);
-                    }
-                }
-            }
-        });
-        
-        // Wait for all pages in this batch to complete
-        const batchResults = await Promise.all(batchPromises);
-        results.push(...batchResults);
-        
-        // Small delay between batches to be respectful to the server
-        if (i + BATCH_SIZE < items.length) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-        }
-    }
-    
-    return results;
-}
-
-// Usage
-(async () => {
-    let allResults = [];
-    try {
-        allResults = await scrapeAllPages();
-        console.log('Scraping completed successfully!');
-    } catch (error) {
-        console.error('Error during scraping:', error);
-        console.log('Attempting to save partial results...');
-        
-        // Try to get partial results from progress file
-        try {
-            const fs = await import('fs');
-            const progressData = fs.readFileSync('./../../../minecraft-schematics-progress.json', 'utf8');
-            allResults = JSON.parse(progressData);
-            console.log('Recovered partial results from progress file');
-        } catch (progressError) {
-            console.error('Could not recover progress file:', progressError.message);
-        }
-    } finally {
-        // Always try to save results, even if there was an error
-        if (allResults.length > 0) {
-            try {
-                writeFileSync('./../../../minecraft-schematics.json', JSON.stringify(allResults, null, 2));
-                console.log('Results saved to minecraft-schematics.json');
-                console.log(`Total items scraped: ${allResults.reduce((sum, page) => sum + page.items.length, 0)}`);
-                console.log(`Total pages scraped: ${allResults.length}`);
-            } catch (writeError) {
-                console.error('Error writing final file:', writeError.message);
-            }
-        } else {
-            console.log('No results to save');
-        }
-    }
-})();
+// Run the scraper
+scrapeAllPages().catch((err) => console.error("❌ Fatal error:", err));

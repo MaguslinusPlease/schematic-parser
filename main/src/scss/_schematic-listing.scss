@@ -1,0 +1,52 @@
+#schematic-list {
+  margin: 1rem auto;
+  width: $contentWidth;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  grid-row-gap: 4rem;
+
+  .item {
+    .item-image {
+      position: relative;
+
+      img {
+        width: 100%;
+      }
+
+      .bookmark {
+        position: absolute;
+        right: 0;
+        bottom: 5px;
+      }
+    }
+
+    .text {
+      margin-bottom: 1rem;
+
+      .item-title {
+        max-width: 100%;
+        font-size: 1.5rem;
+        text-decoration: none;
+        color: $textColor;
+      }
+    }
+
+    .meta-data {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .star-btn {
+      min-width: 2rem;
+      font-size: 1.5rem;
+      background-color: #0000007a;
+      color: $textColor;
+      border: none;
+
+      &:hover {
+        cursor: pointer;
+      }
+    }
+  }
+}

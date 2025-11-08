@@ -32,7 +32,7 @@ class ScrollHeader {
         const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
         
         // Don't hide header if we're at the very top
-        if (currentScrollTop <= 0) {
+        if (currentScrollTop <= 150) {
             this.showHeader();
             return;
         }

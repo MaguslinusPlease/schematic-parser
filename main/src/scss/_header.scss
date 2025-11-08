@@ -1,0 +1,119 @@
+.search-field {
+    width: 20rem;
+    height: 2rem;
+}
+
+.head {
+    margin-bottom: 2rem;
+    position: sticky;
+    top: 0;
+    background-color: $backgroundColor;
+    z-index: 999;
+    padding-bottom: 0.25rem;
+    transition: transform 0.3s ease-in-out;
+    transform: translateY(0);
+
+    &.header-hidden {
+        transform: translateY(-100%);
+    }
+
+    .center {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .bookmark-controls-container {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    select,
+    button {
+        padding: 0.35rem 1rem;
+    }
+
+    .category-filters {
+        margin: 2rem auto;
+        width: $contentWidth;
+
+        .category-grid {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .category-card {
+            background: #f8f9fa00;
+            color: white;
+            // border: 2px solid #225560;
+            border: 1px solid white;
+            // border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            min-width: 150px;
+            display: flex;
+            flex-grow: 1;
+            justify-content: center;
+
+            &:hover {
+                background: white;
+                color: $backgroundColor;
+            }
+
+            &.active {
+                background: white;
+                color: $backgroundColor;
+                border-color: $backgroundColor;
+                font-weight: 600;
+            }
+        }
+    }
+
+    .theme-filters {
+        margin: 1rem auto;
+        width: $contentWidth;
+        display: flex;
+
+        .theme-grid {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .theme-card {
+            background: #f8f9fa00;
+            color: white;
+            // border: 2px solid #225560;
+            border: 1px solid white;
+            // border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            min-width: 150px;
+            display: flex;
+            flex-grow: 1;
+            justify-content: center;
+
+            &:hover {
+                background: white;
+                color: $backgroundColor;
+            }
+
+            &.active {
+                background: white;
+                color: $backgroundColor;
+                border-color: $backgroundColor;
+                font-weight: 600;
+            }
+        }
+    }
+}
